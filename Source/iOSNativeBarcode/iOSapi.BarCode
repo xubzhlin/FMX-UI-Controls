@@ -1,0 +1,194 @@
+unit iOSapi.BarCode;
+//iOS 原生扫描 单元
+
+interface
+
+uses System.SysUtils, Macapi.ObjectiveC, Macapi.Dispatch, iOSapi.Foundation, iOSapi.CoreGraphics,
+  iOSapi.AVFoundation, iOSapi.CoreMedia, iOSapi.CocoaTypes;
+
+type
+  AVMetadataObject = interface;
+  AVMetadataFaceObject = interface;
+  AVMetadataMachineReadableCodeObject = interface;
+  AVCaptureMetadataOutputObjectsDelegate = interface;
+  AVCaptureMetadataOutput = interface;
+
+  AVMetadataObjectClass = interface(NSObjectClass)
+    ['{7C249BAC-2A60-42A4-94BD-C6B707E2E212}']
+  end;
+
+  AVMetadataObject = interface(NSObject)
+    ['{A42704D0-2C2B-4D48-B906-2155CEEE27AC}']
+    function time: CMTime; cdecl;
+    function duration: CMTime; cdecl;
+    function bounds: CGRect; cdecl;
+    function &type: NSString; cdecl;
+  end;
+
+  TAVMetadataObject = class(TOCGenericImport<AVMetadataObjectClass,
+    AVMetadataObject>)
+  end;
+
+  AVMetadataFaceObjectClass = interface(AVMetadataObjectClass)
+    ['{1ACC3077-08C8-408E-B856-81B8520F58CC}']
+  end;
+
+  AVMetadataFaceObject = interface(AVMetadataObject)
+    ['{BE91B67A-66BC-45AF-B61D-59DDBD70AD9E}']
+    function hasRollAngle: Boolean; cdecl;
+    function rollAngle: CGFloat; cdecl;
+    function hasYawAngle: Boolean; cdecl;
+    function yawAngle: CGFloat; cdecl;
+  end;
+
+  TAVMetadataFaceObject = class(TOCGenericImport<AVMetadataFaceObjectClass,
+    AVMetadataFaceObject>)
+  end;
+
+  AVMetadataMachineReadableCodeObjectClass = interface(AVMetadataObjectClass)
+    ['{ABC56DC9-E833-4B58-991B-4A15C27D5FB3}']
+  end;
+
+  AVMetadataMachineReadableCodeObject = interface(AVMetadataObject)
+    ['{9E685E27-B997-407D-9B44-BC338E0838DF}']
+    function corners: NSArray; cdecl;
+    function stringValue: NSString; cdecl;
+  end;
+
+  TAVMetadataMachineReadableCodeObject = class
+    (TOCGenericImport<AVMetadataMachineReadableCodeObjectClass,
+    AVMetadataMachineReadableCodeObject>)
+  end;
+
+  AVCaptureMetadataOutputObjectsDelegate = interface(IObjectiveC)
+    ['{F8BFC4D1-978E-4C9F-9FBA-8CA3D9301283}']
+    [MethodName('captureOutput:didOutputMetadataObjects:fromConnection:')]
+    procedure captureOutputdidOutputMetadataObjects(captureOutput: AVCaptureOutput;
+      metadataObjects: NSArray; connection: AVCaptureConnection); cdecl;
+  end;
+
+  AVCaptureMetadataOutputClass = interface(AVCaptureOutputClass)
+    ['{74A8A2BD-4CD2-4DA4-AA2A-31FB90FE2127}']
+  end;
+
+  AVCaptureMetadataOutput = interface(AVCaptureOutput)
+    ['{9AB203B0-9180-4D11-87AB-9A4AF43FC7A3}']
+    [MethodName('setMetadataObjectsDelegate:queue:')]
+    procedure setMetadataObjectsDelegateWithqueue(objectsDelegate: Pointer;
+      objectsCallbackQueue: dispatch_queue_t); cdecl;
+    function metadataObjectsDelegate: Pointer; cdecl;
+    function metadataObjectsCallbackQueue: dispatch_queue_t; cdecl;
+    function availableMetadataObjectTypes: NSArray; cdecl;
+    function metadataObjectTypes: NSArray; cdecl;
+    procedure setMetadataObjectTypes(metadataObjectTypes: NSArray); cdecl;
+    function rectOfInterest: CGRect; cdecl;
+    procedure setRectOfInterest(rectOfInterest: CGRect); cdecl;
+  end;
+
+  TAVCaptureMetadataOutput = class
+    (TOCGenericImport<AVCaptureMetadataOutputClass, AVCaptureMetadataOutput>)
+  end;
+
+function dispatch_get_main_queue: dispatch_queue_t;
+function AVLayerVideoGravityResizeAspectFill: NSString;
+
+function AVMetadataObjectTypeUPCECode: NSString;
+function AVMetadataObjectTypeCode39Code: NSString;
+function AVMetadataObjectTypeCode39Mod43Code: NSString;
+function AVMetadataObjectTypeEAN13Code: NSString;
+function AVMetadataObjectTypeEAN8Code: NSString;
+function AVMetadataObjectTypeCode93Code: NSString;
+function AVMetadataObjectTypeCode128Code: NSString;
+function AVMetadataObjectTypePDF417Code: NSString;
+function AVMetadataObjectTypeQRCode: NSString;
+function AVMetadataObjectTypeAztecCode: NSString;
+function AVMetadataObjectTypeInterleaved2of5Code: NSString;
+function AVMetadataObjectTypeITF14Code: NSString;
+function AVMetadataObjectTypeDataMatrixCode: NSString;
+
+implementation
+
+function dispatch_get_main_queue: dispatch_queue_t;
+var
+  dispatchModule: HMODULE;
+begin
+  Result         := 0;
+  dispatchModule := LoadLibrary( PWideChar( libdispatch ) );
+  if dispatchModule <> 0 then
+  begin
+    Result := dispatch_queue_t( GetProcAddress( dispatchModule, PWideChar( '_dispatch_main_q' ) ) );
+    FreeLibrary( dispatchModule );
+  end;
+end;
+
+function AVLayerVideoGravityResizeAspectFill: NSString;
+begin
+  Result := CocoaNSStringConst( libAVFoundation, 'AVLayerVideoGravityResizeAspectFill' );
+end;
+
+function AVMetadataObjectTypeUPCECode: NSString;
+begin
+  result := CocoaNSStringConst(libAVFoundation, 'AVMetadataObjectTypeUPCECode');
+end;
+
+function AVMetadataObjectTypeCode39Code: NSString;
+begin
+  result := CocoaNSStringConst(libAVFoundation, 'AVMetadataObjectTypeCode39Code');
+end;
+
+function AVMetadataObjectTypeCode39Mod43Code: NSString;
+begin
+  result := CocoaNSStringConst(libAVFoundation, 'AVMetadataObjectTypeCode39Mod43Code');
+end;
+
+function AVMetadataObjectTypeEAN13Code: NSString;
+begin
+  result := CocoaNSStringConst(libAVFoundation, 'AVMetadataObjectTypeEAN13Code');
+end;
+
+function AVMetadataObjectTypeEAN8Code: NSString;
+begin
+  result := CocoaNSStringConst(libAVFoundation, 'AVMetadataObjectTypeEAN8Code');
+end;
+
+function AVMetadataObjectTypeCode93Code: NSString;
+begin
+  result := CocoaNSStringConst(libAVFoundation, 'AVMetadataObjectTypeCode93Code');
+end;
+
+function AVMetadataObjectTypeCode128Code: NSString;
+begin
+  result := CocoaNSStringConst(libAVFoundation, 'AVMetadataObjectTypeCode128Code');
+end;
+
+function AVMetadataObjectTypePDF417Code: NSString;
+begin
+  result := CocoaNSStringConst(libAVFoundation, 'AVMetadataObjectTypePDF417Code');
+end;
+
+function AVMetadataObjectTypeQRCode: NSString;
+begin
+  result := CocoaNSStringConst(libAVFoundation, 'AVMetadataObjectTypeQRCode');
+end;
+
+function AVMetadataObjectTypeAztecCode: NSString;
+begin
+  result := CocoaNSStringConst(libAVFoundation, 'AVMetadataObjectTypeAztecCode');
+end;
+
+function AVMetadataObjectTypeInterleaved2of5Code: NSString;
+begin
+  result := CocoaNSStringConst(libAVFoundation, 'AVMetadataObjectTypeInterleaved2of5Code');
+end;
+
+function AVMetadataObjectTypeITF14Code: NSString;
+begin
+  result := CocoaNSStringConst(libAVFoundation, 'AVMetadataObjectTypeITF14Code');
+end;
+
+function AVMetadataObjectTypeDataMatrixCode: NSString;
+begin
+  result := CocoaNSStringConst(libAVFoundation, 'AVMetadataObjectTypeDataMatrixCode');
+end;
+
+end.
