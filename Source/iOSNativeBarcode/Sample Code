@@ -1,0 +1,71 @@
+  type
+  TAVCaptureMetadataOutputObjectsDelegate = class(TOCLocal, AVCaptureMetadataOutputObjectsDelegate)
+    [MethodName('captureOutput:didOutputMetadataObjects:fromConnection:')]
+    procedure captureOutputdidOutputMetadataObjects(captureOutput: AVCaptureOutput; metadataObjects: NSArray; connection: AVCaptureConnection); cdecl;
+  end;
+  
+procedure TAVCaptureMetadataOutputObjectsDelegate.captureOutputdidOutputMetadataObjects(
+  captureOutput: AVCaptureOutput; metadataObjects: NSArray;
+  connection: AVCaptureConnection);
+var
+  metadataObject:AVMetadataMachineReadableCodeObject;
+  info:string;
+begin
+ //[session stopRunning];
+  if (metadataObjects <>nil) and (metadataObjects.count > 0) then
+  begin
+    metadataObject :=TAVMetadataMachineReadableCodeObject.Wrap(metadataObjects.objectAtIndex(0));
+    //输出扫描字符串 metadataObject.stringValue
+  end;
+end;
+
+function StartRunning
+var
+  device:AVCaptureDevice;
+  input:AVCaptureDeviceInput;
+  output:AVCaptureMetadataOutput;
+  Delegate:TAVCaptureMetadataOutputObjectsDelegate;
+  session:AVCaptureSession;
+  ObjectTypes:NSMutableArray;
+  layer:AVCaptureVideoPreviewLayer;
+begin
+  // Do any additional setup after loading the view, typically from a nib.
+  //获取摄像设备
+  device := TAVCaptureDevice.Wrap(TAVCaptureDevice.OCClass.defaultDeviceWithMediaType(AVMediaTypeVideo));
+  //创建输入流
+  input :=TAVCaptureDeviceInput.Wrap(TAVCaptureDeviceInput.OCClass.deviceInputWithDevice(device, nil));
+  //创建输出流
+  output := TAVCaptureMetadataOutput.Wrap(TAVCaptureMetadataOutput.Wrap(TAVCaptureMetadataOutput.OCClass.alloc).init);
+
+  //设置代理 在主线程里刷新
+  Delegate:=TAVCaptureMetadataOutputObjectsDelegate.Create;
+  output.setMetadataObjectsDelegateWithqueue((Delegate as ILocalObject).GetObjectID, dispatch_get_main_queue);
+
+
+  //初始化链接对象
+  session := TAVCaptureSession.Create;
+  //高质量采集率
+  session.setSessionPreset(AVCaptureSessionPresetHigh);
+  session.addInput(input);
+  session.addOutput(output);
+
+  //设置扫码支持的编码格式(如下设置条形码和二维码兼容)
+  ObjectTypes:=TNSMutableArray.Create;
+  ObjectTypes.addObject((AVMetadataObjectTypeQRCode as ILocalObject).GetObjectID);
+  ObjectTypes.addObject((AVMetadataObjectTypeEAN13Code as ILocalObject).GetObjectID);
+  ObjectTypes.addObject((AVMetadataObjectTypeEAN8Code as ILocalObject).GetObjectID);
+  ObjectTypes.addObject((AVMetadataObjectTypeCode128Code as ILocalObject).GetObjectID);
+  ObjectTypes.addObject((AVMetadataObjectTypeQRCode as ILocalObject).GetObjectID);
+  output.setMetadataObjectTypes(ObjectTypes);
+
+  layer := TAVCaptureVideoPreviewLayer.Wrap(TAVCaptureVideoPreviewLayer.OCClass.layerWithSession(session));
+  layer.setVideoGravity(AVLayerVideoGravityResizeAspectFill);
+
+  ARect := TRectF.Create(0, 0, Layout4.Width, Layout4.height);
+  ARect.Fit(Layout4.AbsoluteRect);
+  layer.setFrame(CGRectFromRect(ARect));
+
+  WindowHandleToPlatform(Self.Handle).View.layer.insertSublayer(layer, 0);
+  //开始捕获
+  session.startRunning;
+ end;
