@@ -1,0 +1,361 @@
+unit FMX.Video.iOS;
+
+interface
+
+uses System.Classes, System.SysUtils, System.Types, FMX.Platform, FMX.Video,
+  iOSapi.AVFoundation, Macapi.Dispatch, iOSapi.UIKit, Macapi.ObjectiveC,
+  iOSapi.CoreMedia, iOSapi.CoreVideo, iOSapi.Foundation, iOSapi.WriteRenderer,
+  Macapi.Helpers, FMX.Helpers.iOS, Macapi.ObjCRuntime, System.TypInfo,
+  FMX.Forms, FMX.Platform.iOS, iOSapi.CoreGraphics, iOSapi.CoreAudio;
+
+function CreateVideoCapture(AVideoControl: TVideoCapture): ICustomVideoCapture;
+
+implementation
+
+type
+  TVideoCaptureiOS = class;
+
+  IVideoCaptureHander = interface(NSObject)
+    ['{AAF2DF0E-C4BF-4057-8C5F-1B8A832BC39E}']
+    procedure DidEnterBackground; cdecl;
+    procedure WillEnterForeground; cdecl;
+    procedure DeviceOrientationChanged; cdecl;
+  end;
+
+  TVideoCaptureHandle = class(TOCLocal)
+  private
+    [Weak]
+    FVideoCapture: TVideoCaptureiOS;
+    procedure DidEnterBackgroundNotification;
+  protected
+    { TOCLocal }
+    function GetObjectiveCClass: PTypeInfo; override;
+  public
+    constructor Create(const AVideoCapture: TVideoCaptureiOS);
+    destructor Destroy; override;
+    { IFMXInterfaceOrientationChanged }
+    procedure DidEnterBackground; cdecl;
+    procedure WillEnterForeground; cdecl;
+    procedure DeviceOrientationChanged; cdecl;
+  end;
+
+  TVideoCaptureiOS = class(TInterfacedObject, ICustomVideoCapture)
+  type
+    TRosyWriterCapturePipelineDelegate = class(TOCLocal,
+      RosyWriterCapturePipelineDelegate)
+    private
+      [Weak]
+      FVideoCapture: TVideoCaptureiOS;
+    public
+      constructor Create(const AVideoCapture: TVideoCaptureiOS);
+      // Preview
+      [MethodName('capturePipeline:didStopRunningWithError:')]
+      procedure capturePipelineDidStopRunningWithError(capturePipeline
+        : RosyWriterCapturePipeline; error: NSError); cdecl;
+      [MethodName('capturePipeline:previewPixelBufferReadyForDisplay:')]
+      procedure capturePipelinePreviewPixelBufferReadyForDisplay(capturePipeline
+        : RosyWriterCapturePipeline;
+        previewPixelBuffer: CVPixelBufferRef); cdecl;
+      procedure capturePipelineDidRunOutOfPreviewBuffers(capturePipeline
+        : RosyWriterCapturePipeline); cdecl;
+      // Recording
+      procedure capturePipelineRecordingDidStart(capturePipeline
+        : RosyWriterCapturePipeline); cdecl;
+      [MethodName('capturePipeline:recordingDidFailWithError:')]
+      procedure capturePipelineRecordingDidFailWithError(capturePipeline
+        : RosyWriterCapturePipeline; error: NSError); cdecl;
+      // Can happen at any point after a startRecording call, for example: startRecording->didFail (without a didStart), willStop->didFail (without a didStop)
+      procedure capturePipelineRecordingWillStop(capturePipeline
+        : RosyWriterCapturePipeline); cdecl;
+      procedure capturePipelineRecordingDidStop(capturePipeline
+        : RosyWriterCapturePipeline); cdecl;
+    end;
+  private
+    Transform: CGAffineTransform;
+    recodingURL: NSURL;
+    FHandle: TVideoCaptureHandle;
+    FCaptureDelegate: TRosyWriterCapturePipelineDelegate;
+    FView: OpenGLPixelBufferView;
+    FCapture: RosyWriterCapturePipeline;
+    FAllowedToUseGPU: Boolean;
+    FBackgroundRecordingID: UIBackgroundTaskIdentifier;
+    FVideoControl: TVideoCapture;
+    procedure recordingStopped;
+    procedure DoUICreate;
+  protected
+    { ICustomVideoCapture }
+    procedure StartCapture;
+    procedure StopCapture;
+    procedure StartRecord;
+    procedure StopRecord;
+  public
+    constructor Create(AVideoControl: TVideoCapture);
+    destructor Destroy; override;
+  end;
+
+function AVEncoderAudioQualityKey: NSString;
+begin
+  Result := CocoaNSStringConst(libAVFoundation, 'AVEncoderAudioQualityKey');
+end;
+
+function CreateVideoCapture(AVideoControl: TVideoCapture): ICustomVideoCapture;
+begin
+  Result := TVideoCaptureiOS.Create(AVideoControl);
+end;
+
+{ TVideoCaptureiOS }
+
+constructor TVideoCaptureiOS.Create(AVideoControl: TVideoCapture);
+begin
+  FVideoControl := AVideoControl;
+end;
+
+destructor TVideoCaptureiOS.Destroy;
+begin
+
+  TNSNotificationCenter.Wrap(TNSNotificationCenter.OcClass.defaultCenter)
+    .removeObserver(FHandle.GetObjectID);
+  FreeAndNil(FHandle);
+
+  FCapture := nil;
+  FCaptureDelegate := nil;
+  inherited;
+end;
+
+procedure TVideoCaptureiOS.DoUICreate;
+var
+  currentInterfaceOrientation: UIInterfaceOrientation;
+  Form: TCommonCustomForm;
+  ControlView: UIView;
+  ARect: TRectF;
+  Abounds: CGRect;
+begin
+  FHandle := TVideoCaptureHandle.Create(Self);
+  TNSNotificationCenter.Wrap(TNSNotificationCenter.OcClass.defaultCenter)
+    .addObserver(FHandle.GetObjectID, sel_getUid('DidEnterBackground'),
+    StringToID('UIApplicationDidEnterBackgroundNotification'), nil);
+  TNSNotificationCenter.Wrap(TNSNotificationCenter.OcClass.defaultCenter)
+    .addObserver(FHandle.GetObjectID, sel_getUid('WillEnterForeground'),
+    StringToID('UIApplicationWillEnterForegroundNotification'), nil);
+  TNSNotificationCenter.Wrap(TNSNotificationCenter.OcClass.defaultCenter)
+    .addObserver(FHandle.GetObjectID, sel_getUid('DeviceOrientationChanged'),
+    StringToID('UIDeviceOrientationDidChangeNotification'), nil);
+
+  FCaptureDelegate := TRosyWriterCapturePipelineDelegate.Create(Self);
+
+  recodingURL := TNSURL.Wrap(TNSURL.Alloc.initFileURLWithPath
+    (StrToNSStr(FVideoControl.FileName)));
+  recodingURL.retain;
+
+  FCapture := TRosyWriterCapturePipeline.Wrap
+    (TRosyWriterCapturePipeline.Alloc.initWithDelegateAndMainQueue
+    (FCaptureDelegate.GetObjectID, recodingURL));
+
+  FView := TOpenGLPixelBufferView.Wrap
+    (TOpenGLPixelBufferView.Alloc.initWithFrame(CGRectFromRect(TRectF.Create(0,
+    0, 0, 0))));
+
+  FView.setautoresizingMask(UIViewAutoresizingFlexibleHeight or
+    UIViewAutoresizingFlexibleWidth);
+
+  // Front camera preview should be mirrored
+
+  currentInterfaceOrientation := SharedApplication.statusBarOrientation;
+
+  Transform := FCapture.transformFromVideoBufferOrientationToOrientation
+    (currentInterfaceOrientation, True);
+  // 需要旋转  PI/2  原因未知
+  Transform := CGAffineTransformRotate(Transform, cPIdiv2);
+  FView.settransform(Transform);
+
+  Form := TCommonCustomForm(FVideoControl.Root);
+  ControlView := WindowHandleToPlatform(Form.Handle).View;
+  ControlView.insertSubview(FView, 0);
+
+  ARect := TRectF.Create(0, 0, FVideoControl.Width, FVideoControl.height);
+  ARect.Fit(FVideoControl.AbsoluteRect);
+  Abounds := CGRectFromRect(ARect);
+  Abounds.size := ControlView.convertRect(Abounds, FView).size;
+  FView.setbounds(Abounds);
+  FView.setcenter(CGPointMake(FVideoControl.Width / 2.0,
+    FVideoControl.height / 2.0));
+  {
+    //全屏 居中
+    Abounds := CGRectFromRect(TRectF.Create(0, 0, 0, 0));
+    Abounds.size := ControlView.convertRect(ControlView.bounds, FView).size;
+
+    FView.setbounds(Abounds);
+    FView.setcenter(CGPointMake(ControlView.bounds.size.Width / 2.0,
+    ControlView.bounds.size.height / 2.0));
+  }
+
+  // Keep track of changes to the device orientation so we can update the capture pipeline
+  TUIDevice.Wrap(TUIDevice.OcClass.currentDevice)
+    .beginGeneratingDeviceOrientationNotifications;
+
+  // the willEnterForeground and didEnterBackground notifications are subsequently used to update _allowedToUseGPU
+  FAllowedToUseGPU := SharedApplication.applicationState <>
+    UIApplicationStateBackground;
+  FCapture.setrenderingEnabled(FAllowedToUseGPU);
+
+end;
+
+procedure TVideoCaptureiOS.recordingStopped;
+begin
+  SharedApplication.setIdleTimerDisabled(False);
+  SharedApplication.endBackgroundTask(Pointer(FBackgroundRecordingID));
+  FBackgroundRecordingID := UIBackgroundTaskInvalid;
+end;
+
+procedure TVideoCaptureiOS.StartCapture;
+var
+  Path: NSString;
+begin
+  if nil = FView then
+    // Create UI Show
+    DoUICreate;
+  if FView.isHidden then
+    FView.setHidden(False);
+  FCapture.startRunning;
+end;
+
+procedure TVideoCaptureiOS.StartRecord;
+begin
+  if nil = FView then
+    Exit;
+  // Disable the idle timer while recording
+  SharedApplication.setIdleTimerDisabled(True);
+  // Make sure we have time to finish saving the movie if the app is backgrounded during recording
+  if TUIDevice.Wrap(TUIDevice.OcClass.currentDevice).isMultitaskingSupported
+  then
+    { FBackgroundRecordingID := UIMyApplication(SharedApplication).beginBackgroundTaskWithExpirationHandler(nil); }
+    FBackgroundRecordingID := TUIMyApplication.Wrap
+      (TUIApplication.OcClass.SharedApplication)
+      .beginBackgroundTaskWithExpirationHandler(nil);
+  FCapture.startRecording;
+end;
+
+procedure TVideoCaptureiOS.StopCapture;
+begin
+  if nil = FView then
+    Exit;
+  FCapture.stopRunning;
+  if not FView.isHidden then
+    FView.setHidden(True);
+end;
+
+procedure TVideoCaptureiOS.StopRecord;
+begin
+  if nil = FView then
+    Exit;
+  FCapture.stopRecording;
+end;
+
+{ TVideoCaptureiOS.TRosyWriterCapturePipelineDelegate }
+
+procedure TVideoCaptureiOS.TRosyWriterCapturePipelineDelegate.
+  capturePipelineDidRunOutOfPreviewBuffers(capturePipeline
+  : RosyWriterCapturePipeline);
+begin
+  if FVideoCapture.FAllowedToUseGPU then
+    FVideoCapture.FView.flushPixelBufferCache;
+end;
+
+procedure TVideoCaptureiOS.TRosyWriterCapturePipelineDelegate.
+  capturePipelineDidStopRunningWithError(capturePipeline
+  : RosyWriterCapturePipeline; error: NSError);
+begin
+  raise Exception.Create(NSStrToStr(error.localizedDescription));
+end;
+
+procedure TVideoCaptureiOS.TRosyWriterCapturePipelineDelegate.
+  capturePipelinePreviewPixelBufferReadyForDisplay(capturePipeline
+  : RosyWriterCapturePipeline; previewPixelBuffer: CVPixelBufferRef);
+begin
+  if not FVideoCapture.FAllowedToUseGPU then
+    Exit;
+  FVideoCapture.FView.displayPixelBuffer(previewPixelBuffer);
+end;
+
+procedure TVideoCaptureiOS.TRosyWriterCapturePipelineDelegate.
+  capturePipelineRecordingDidFailWithError(capturePipeline
+  : RosyWriterCapturePipeline; error: NSError);
+begin
+  FVideoCapture.recordingStopped;
+  raise Exception.Create(NSStrToStr(error.localizedDescription));
+end;
+
+procedure TVideoCaptureiOS.TRosyWriterCapturePipelineDelegate.
+  capturePipelineRecordingDidStart(capturePipeline: RosyWriterCapturePipeline);
+begin
+
+end;
+
+procedure TVideoCaptureiOS.TRosyWriterCapturePipelineDelegate.
+  capturePipelineRecordingDidStop(capturePipeline: RosyWriterCapturePipeline);
+begin
+  FVideoCapture.recordingStopped;
+end;
+
+procedure TVideoCaptureiOS.TRosyWriterCapturePipelineDelegate.
+  capturePipelineRecordingWillStop(capturePipeline: RosyWriterCapturePipeline);
+begin
+
+end;
+
+constructor TVideoCaptureiOS.TRosyWriterCapturePipelineDelegate.Create
+  (const AVideoCapture: TVideoCaptureiOS);
+begin
+  inherited Create;
+  FVideoCapture := AVideoCapture;
+end;
+
+{ TVideoCaptureOrientationChanged }
+
+constructor TVideoCaptureHandle.Create(const AVideoCapture: TVideoCaptureiOS);
+begin
+  inherited Create;
+  FVideoCapture := AVideoCapture;
+end;
+
+destructor TVideoCaptureHandle.Destroy;
+begin
+  FVideoCapture := nil;
+  inherited;
+end;
+
+procedure TVideoCaptureHandle.DeviceOrientationChanged;
+begin
+  if FVideoCapture = nil then
+    Exit;
+  FVideoCapture.StopRecord;
+end;
+
+procedure TVideoCaptureHandle.DidEnterBackground;
+begin
+
+end;
+
+procedure TVideoCaptureHandle.DidEnterBackgroundNotification;
+begin
+  if FVideoCapture = nil then
+    Exit;
+  FVideoCapture.StopRecord;
+  FVideoCapture.FAllowedToUseGPU := False;
+  if FVideoCapture.FCapture <> nil then
+    FVideoCapture.FCapture.setrenderingEnabled(False);
+end;
+
+function TVideoCaptureHandle.GetObjectiveCClass: PTypeInfo;
+begin
+  Result := TypeInfo(IVideoCaptureHander);
+end;
+
+procedure TVideoCaptureHandle.WillEnterForeground;
+begin
+  FVideoCapture.FAllowedToUseGPU := True;
+  if FVideoCapture.FCapture <> nil then
+    FVideoCapture.FCapture.setrenderingEnabled(True);
+end;
+
+end.
