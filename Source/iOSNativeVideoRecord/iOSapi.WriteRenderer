@@ -1,0 +1,175 @@
+unit iOSapi.WriteRenderer;
+
+interface
+
+uses Posix.StdDef, Macapi.CoreFoundation, iOSapi.CoreMedia, iOSapi.CoreVideo,
+  iOSapi.QuartzCore, iOSapi.Foundation, Macapi.ObjectiveC, Macapi.Dispatch,
+  iOSapi.AVFoundation, iOSapi.CoreGraphics, iOSapi.UIKit;
+
+const
+  RETAINED_BUFFER_COUNT = 6;
+  RECORD_AUDIO = 0;
+  LOG_STATUS_TRANSITIONS = 0;
+  libWriteRenderer =
+    '/System/Library/Frameworks/WriteRenderer.framework/WriteRenderer';
+  libUIKit = '/System/Library/Frameworks/UIKit.framework/UIKit';
+
+type
+  RosyWriterRecordingStatus = (RosyWriterRecordingStatusIdle = 0,
+    RosyWriterRecordingStatusStartingRecording,
+    RosyWriterRecordingStatusRecording,
+    RosyWriterRecordingStatusStoppingRecording);
+
+type
+  RosyWriterRenderer = interface;
+  RosyWriterCapturePipeline = interface;
+  OpenGLPixelBufferView = interface;
+  RosyWriterCapturePipelineDelegate = interface;
+  UIMyApplication = interface;
+
+  RosyWriterRendererClass = interface(NSObjectClass)
+    ['{9D7E4BCB-4027-4893-AA4F-1AE3697A6094}']
+  end;
+
+  RosyWriterRenderer = interface(NSObject)
+    ['{D1196A62-F2D5-4A5D-BA9D-AA9FBA23BB0E}']
+    function operatesInPlace: Boolean; cdecl;
+    function inputPixelFormat: FourCharCode; cdecl;
+    procedure prepareForInputWithFormatDescription(inputFormatDescription
+      : CMFormatDescriptionRef; outputRetainedBufferCountHint: size_t); cdecl;
+    procedure reset; cdecl;
+    function copyRenderedPixelBuffer(pixelBuffer: CVPixelBufferRef)
+      : CVPixelBufferRef; cdecl;
+    function outputFormatDescription: CMFormatDescriptionRef; cdecl;
+  end;
+
+  TRosyWriterRenderer = class(TOCGenericImport<RosyWriterRendererClass,
+    RosyWriterRenderer>)
+  end;
+
+  RosyWriterCapturePipelineDelegate = interface(IObjectiveC)
+    ['{A4504584-782F-44B3-9779-6AC1F2495649}']
+    // Preview
+    [MethodName('capturePipeline:didStopRunningWithError:')]
+    procedure capturePipelineDidStopRunningWithError(capturePipeline
+      : RosyWriterCapturePipeline; error: NSError); cdecl;
+    [MethodName('capturePipeline:previewPixelBufferReadyForDisplay:')]
+    procedure capturePipelinePreviewPixelBufferReadyForDisplay(capturePipeline
+      : RosyWriterCapturePipeline; previewPixelBuffer: CVPixelBufferRef); cdecl;
+    procedure capturePipelineDidRunOutOfPreviewBuffers(capturePipeline
+      : RosyWriterCapturePipeline); cdecl;
+    // Recording
+    procedure capturePipelineRecordingDidStart(capturePipeline
+      : RosyWriterCapturePipeline); cdecl;
+    [MethodName('capturePipeline:recordingDidFailWithError:')]
+    procedure capturePipelineRecordingDidFailWithError(capturePipeline
+      : RosyWriterCapturePipeline; error: NSError); cdecl;
+    // Can happen at any point after a startRecording call, for example: startRecording->didFail (without a didStart), willStop->didFail (without a didStop)
+    procedure capturePipelineRecordingWillStop(capturePipeline
+      : RosyWriterCapturePipeline); cdecl;
+    procedure capturePipelineRecordingDidStop(capturePipeline
+      : RosyWriterCapturePipeline); cdecl;
+  end;
+
+  RosyWriterCapturePipelineClasee = interface(NSObjectClass)
+    ['{72977325-CA98-4BDC-8F40-8267546C4277}']
+  end;
+
+  RosyWriterCapturePipeline = interface(NSObject)
+    ['{97618FA7-67DC-4F89-960B-D61C50D1804E}']
+    // delegate is weak referenced
+    [MethodName('initWithDelegate:callbackQueue:')]
+    function initWithDelegate(delegate: Pointer; queue: dispatch_queue_t)
+      : Pointer; cdecl;
+
+    [MethodName('initWithDelegatewithMainQueue:withrecordingURL:')]
+    function initWithDelegateAndMainQueue(delegate: Pointer;
+      recordingURL: NSURL): Pointer; cdecl;
+    // These methods are synchronous
+    procedure startRunning; cdecl;
+    procedure stopRunning; cdecl;
+
+    // Must be running before starting recording
+    // These methods are asynchronous, see the recording delegate callbacks
+    procedure startRecording; cdecl;
+    procedure stopRecording; cdecl;
+    // When set to NO the GPU will not be used after the setRenderingEnabled: call returns.
+    procedure setRenderingEnabled(renderingEnabled: Boolean); cdecl;
+    function renderingEnabled: Boolean; cdecl;
+    // client can set the orientation for the recorded movie
+    procedure setRecordingOrientation(recordingOrientation
+      : AVCaptureVideoOrientation); cdecl;
+    function recordingOrientation: AVCaptureVideoOrientation; cdecl;
+    // only valid after startRunning has been called
+    [MethodName
+      ('transformFromVideoBufferOrientationToOrientation:withAutoMirroring:')]
+    function transformFromVideoBufferOrientationToOrientation
+      (orientation: AVCaptureVideoOrientation; mirroring: Boolean)
+      : CGAffineTransform; cdecl;
+    // Stats
+    function videoFrameRate: single; cdecl;
+    function videoDimensions: CMVideoDimensions; cdecl;
+  end;
+
+  TRosyWriterCapturePipeline = class
+    (TOCGenericImport<RosyWriterCapturePipelineClasee,
+    RosyWriterCapturePipeline>);
+
+  OpenGLPixelBufferViewClass = interface(UIViewClass)
+    ['{63325D52-3BC5-4707-A69D-5C8FEEB7F635}']
+  end;
+
+  OpenGLPixelBufferView = interface(UIView)
+    ['{F4C54161-5C7D-4B22-BA07-6FD5080F0193}']
+    procedure displayPixelBuffer(pixelBuffer: CVPixelBufferRef); cdecl;
+    procedure flushPixelBufferCache cdecl;
+    procedure reset; cdecl;
+  end;
+
+  TOpenGLPixelBufferView = class(TOCGenericImport<OpenGLPixelBufferViewClass,
+    OpenGLPixelBufferView>);
+
+  UIMyApplicationClass = interface(UIApplicationClass)
+    ['{EB8D5CD5-75CA-469F-B1B9-3A32D640B450}']
+  end;
+
+  UIMyApplication = interface(UIApplication)
+    // 扩展  UIApplication 的接口
+    ['{91E0BF51-08B8-4663-84CE-382EAF11ECF6}']
+    function beginBackgroundTaskWithExpirationHandler(handler: Pointer)
+      : UIBackgroundTaskIdentifier; cdecl;
+  end;
+
+  TUIMyApplication = class(TOCGenericImport<UIMyApplicationClass,
+    UIMyApplication>);
+
+function UIBackgroundTaskInvalid: UIBackgroundTaskIdentifier;
+
+implementation
+
+{$IF defined(IOS) and NOT defined(CPUARM)}
+
+uses Posix.Dlfcn;
+
+var
+  AVModule: THandle;
+{$ENDIF IOS}
+
+function UIBackgroundTaskInvalid: UIBackgroundTaskIdentifier;
+begin
+  Result := UIBackgroundTaskIdentifier(CocoaPointerConst(libUIKit,
+    'UIBackgroundTaskInvalid')^);
+end;
+
+{$IF defined(IOS) and NOT defined(CPUARM)}
+
+initialization
+
+AVModule := dlopen(MarshaledAString(libWriteRenderer), RTLD_LAZY);
+
+finalization
+
+dlclose(AVModule);
+{$ENDIF IOS}
+
+end.
