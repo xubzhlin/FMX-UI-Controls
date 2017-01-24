@@ -36,4 +36,7 @@ Some Firemonkey UI Controls By Myself
  +FMXiOSNativeSearchBox is a NAtiveEdit+SeacherBox control
     
     fix Jiugongge Chinese input method can't delete bug
+    
+ +iOSNativeVideoecord 
+    can preview and record video on iOS
  
