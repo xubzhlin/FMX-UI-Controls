@@ -38,5 +38,14 @@ Some Firemonkey UI Controls By Myself
     fix Jiugongge Chinese input method can't delete bug
     
  +iOSNativeVideoecord 
+    
     can preview and record video on iOS
+    
+    use AVCaptureVideoDataOutput to bring frames from the camera into various processing pipelines
+    
+    use GPU processing effect and delivers rendered buffers
+    
+    uses UIView displays pixel buffers on the screen using OpenGL
+    
+    use of AVAssetWriter to record the displayed effect
  
