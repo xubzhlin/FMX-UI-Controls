@@ -34,5 +34,6 @@ Some Firemonkey UI Controls By Myself
     function DrawBitmapCapInsets1 reference firemonkey source "FMX.Styles.Objects"  TCustomStyleObject.DoDrawToCanvas
     
  +FMXiOSNativeSearchBox is a NAtiveEdit+SeacherBox control
+    
     fix Jiugongge Chinese input method can't delete bug
  
