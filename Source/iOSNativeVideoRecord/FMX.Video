@@ -1,0 +1,85 @@
+unit FMX.Video;
+
+interface
+
+uses System.Classes, System.SysUtils, FMX.Controls;
+
+type
+  // 停止 预览 录像
+  TVideoCaptureState = (csStop, csRuning, csRecording);
+  TVideoCapture = class;
+
+  ICustomVideoCapture = interface
+    ['{E905BA2B-E715-44F3-B2F7-01D4EF16DFD2}']
+    procedure StartCapture;
+    procedure StopCapture;
+    procedure StartRecord;
+    procedure StopRecord;
+  end;
+
+  TVideoCapture = class(TControl)
+  private
+    FFileName: String;
+    FCaptureState: TVideoCaptureState;
+    FVideoCapture: ICustomVideoCapture;
+    function GetVideoCapture: ICustomVideoCapture;
+  public
+    constructor Create(AOwner: TComponent); override;
+    procedure StartCapture;
+    procedure StopCapture;
+    procedure StartRecord;
+    procedure StopRecord;
+  published
+    property FileName: String read FFileName write FFileName;
+    property CaptureState: TVideoCaptureState read FCaptureState write FCaptureState;
+  end;
+
+implementation
+
+uses
+
+{$IFDEF ANDROID}
+  FMX.Video.Android;
+{$ENDIF ANDROID}
+{$IFDEF iOS}
+FMX.Video.iOS;
+{$ENDIF iOS}
+{ TVideoCapture }
+
+constructor TVideoCapture.Create(AOwner: TComponent);
+begin
+  inherited;
+  FVideoCapture := GetVideoCapture;
+end;
+
+function TVideoCapture.GetVideoCapture: ICustomVideoCapture;
+begin
+  Result := CreateVideoCapture(Self);
+end;
+
+procedure TVideoCapture.StartCapture;
+begin
+  FVideoCapture.StartCapture;
+  FCaptureState := TVideoCaptureState.csRuning;
+end;
+
+procedure TVideoCapture.StartRecord;
+begin
+  FVideoCapture.StartRecord;
+  FCaptureState := TVideoCaptureState.csRecording;
+end;
+
+procedure TVideoCapture.StopCapture;
+begin
+  FVideoCapture.StopCapture;
+  FCaptureState := TVideoCaptureState.csStop;
+end;
+
+procedure TVideoCapture.StopRecord;
+begin
+  FVideoCapture.StopRecord;
+  if FCaptureState = TVideoCaptureState.csRecording then
+    FCaptureState := TVideoCaptureState.csRuning;
+end;
+
+end.
