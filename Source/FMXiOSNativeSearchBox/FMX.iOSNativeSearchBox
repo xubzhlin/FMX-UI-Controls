@@ -20,6 +20,7 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+    procedure SetNativeVisible(AValue:Boolean);
   end;
 
 
@@ -40,6 +41,8 @@ end;
 constructor TFMXiOSNativeSearchBox.Create(AOwner: TComponent);
 begin
   inherited;
+  HitTest:=False;
+  ReadOnly:=True;
 end;
 
 destructor TFMXiOSNativeSearchBox.Destroy;
@@ -111,6 +114,16 @@ begin
       FButtonsLayout.Width := FClearButton.Width;
       //FNativeEdit.Width:=FNativeEdit.Width - FClearButton.Width;
     end;
+  end;
+end;
+
+procedure TFMXiOSNativeSearchBox.SetNativeVisible(AValue: Boolean);
+begin
+  //Set Native Edit Visible
+  //when visible is true and not the top of from, will SetNativeVisible false 
+  if (FNativeEdit<>nil) then
+  begin
+    FNativeEdit.Visible:=AValue;
   end;
 end;
 
