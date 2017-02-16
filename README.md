@@ -48,4 +48,7 @@ Some Firemonkey UI Controls By Myself
     uses UIView displays pixel buffers on the screen using OpenGL
     
     use of AVAssetWriter to record the displayed effect
+    
+ +AniFrame
+    frame base class switch animation
  
