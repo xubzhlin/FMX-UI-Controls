@@ -6,11 +6,11 @@ uses
   System.Classes, System.SysUtils, System.Types, System.UITypes, System.DateUtils, FMX.Platform, FMX.Controls, FMX.Layouts, FMX.Types, FMX.Calendar, FMX.ListView, FMX.ListView.Types, FMX.CalendarItemAppearance;
 
 const
-  TWeeks: array [0 .. 6] of string = ('ÈÕ', 'Ò»', '¶þ', 'Èý', 'ËÄ',
-    'Îå', 'Áù');
+  TWeeks: array [0 .. 6] of string = ('æ—¥', 'ä¸€', 'äºŒ', 'ä¸‰', 'å››',
+    'äº”', 'å…­');
     (*
-  TMonths: array [1 .. 12] of string = ('Ò»ÔÂ', '¶þÔÂ', 'ÈýÔÂ', 'ËÄÔÂ', 'ÎåÔÂ', 'ÁùÔÂ',
-    'ÆßÔÂ', '°ËÔÂ', '¾ÅÔÂ', 'Ê®ÔÂ', 'Ê®Ò»ÔÂ', 'Ê®¶þÔÂ'); *)
+  TMonths: array [1 .. 12] of string = ('ä¸€æœˆ', 'äºŒæœˆ', 'ä¸‰æœˆ', 'å››æœˆ', 'äº”æœˆ', 'å…­æœˆ',
+    'ä¸ƒæœˆ', 'å…«æœˆ', 'ä¹æœˆ', 'åæœˆ', 'åä¸€æœˆ', 'åäºŒæœˆ'); *)
   TMonths: array [1 .. 12] of String = (
     'January',
     'February',
@@ -121,7 +121,7 @@ var
   LocaleService:IFMXLocaleService;
 begin
   inherited;
-  //Ä¬ÈÏ ×î½üÁ½¸öÔÂ
+  //é»˜è®¤ æœ€è¿‘ä¸¤ä¸ªæœˆ
   FStartDate:=Now;
   FEndDate:=IncMonth(Now, 1);
 
@@ -200,7 +200,7 @@ procedure TCalendarControl.DoCalenderViewMouseMove(Sender: TObject;
 begin
   if FIsClickDayItem then
   begin
-    // Æ«ÒÆÁË10 ÈÏÎª²»ÊÇµã»÷
+    // åç§»äº†10 è®¤ä¸ºä¸æ˜¯ç‚¹å‡»
     if (Abs(FAtPoint.X - X) > 10) or (Abs(FAtPoint.Y - Y) > 10) then
       FIsClickDayItem := False;
   end;
