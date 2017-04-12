@@ -256,7 +256,7 @@ begin
   Canvas.FillText(ARect, FDayText, False, 1, [], TTextAlign.Center, TTextAlign.Center);
 
 
-  //±ê¼Ç
+  //Â±ÃªÂ¼Ã‡
   if GetIsMark then
   begin
     Canvas.Fill.Color:=TAlphaColors.Gainsboro;
