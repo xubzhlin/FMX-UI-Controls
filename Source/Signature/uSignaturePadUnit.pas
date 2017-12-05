@@ -72,7 +72,8 @@ type
     procedure MouseMove(Shift: TShiftState; X, Y: Single); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Single); override;
     procedure Tap(const Point:TPointF); override;
-
+    procedure DoMouseEnter; override;
+    procedure DoMouseLeave; override;
 
     procedure Paint; override;
     procedure ReSize ; override;
@@ -171,6 +172,19 @@ begin
 end;
 
 
+procedure TSignaturePadPath.DoMouseEnter;
+begin
+  inherited;
+
+end;
+
+procedure TSignaturePadPath.DoMouseLeave;
+begin
+
+  inherited;
+  FIsMouseDown := False;
+end;
+
 procedure TSignaturePadPath.DrawDotToBitMap;
 var
   penThickness, angle:Single;
@@ -210,14 +224,14 @@ begin
 
   if not FIsMouseDown then Exit;
 
-  FCacha.Canvas.BeginScene;
+
   FCacha.Canvas.Stroke.Kind:=TBrushKind.Solid;
   FCacha.Canvas.Stroke.Cap:=TStrokeCap.Round;
   FCacha.Canvas.Stroke.Color:=$FF000000;
 
   FCacha.Canvas.Stroke.Thickness:=FCurrStep.Thickness;
   FCacha.Canvas.DrawLine(FPreStep.Point.Scale(FSceneScale) , FCurrStep.Point.Scale(FSceneScale), 1);
-  FCacha.Canvas.EndScene;
+
 end;
 
 function TSignaturePadPath.GenerateRandom(from, &to: Single): Single;
@@ -289,8 +303,12 @@ var
   L:TPointF;
 begin
   if not FIsMouseDown then exit;
-
-  MoveToPoint(X, Y);
+  try
+    FCacha.Canvas.BeginScene;
+    MoveToPoint(X, Y);
+  finally
+    FCacha.Canvas.EndScene;
+  end;
   Repaint;
 end;
 
@@ -299,14 +317,14 @@ procedure TSignaturePadPath.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
 var
   L:TPointF;
   StepInfo:TStepInfo;
-  NewTrackInfo:TTrackingInfo;
+
 begin
 
   FIsMouseDown:=False;
   L:= TPointF.Create(X, Y);
 
   FPrePoint:=L;
-  FPenThickness:=GetThickness(NewTrackInfo);
+
 
 end;
 
@@ -363,8 +381,6 @@ begin
 
   FTracking:=NewTrackInfo;
   FMidPoint := mid;
-
-  Repaint;
 end;
 
 procedure TSignaturePadPath.Paint;
@@ -404,6 +420,13 @@ end;
 
 procedure TSignaturePadPath.ReSize;
 begin
+  if FCacha <> nil then
+  begin
+    FSceneScale:=Canvas.Scale;
+
+    FCacha.SetSize(Trunc(Width*FSceneScale), Trunc(Height*FSceneScale));
+    FCacha.Clear($FFFFFFFF);
+  end;
   inherited;
 end;
 
