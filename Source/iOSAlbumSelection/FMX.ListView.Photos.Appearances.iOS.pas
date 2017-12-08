@@ -1,5 +1,5 @@
 unit FMX.ListView.Photos.Appearances.iOS;
-//iOS ÕÕÆ¬Ñ¡ÔñÑùÊ½
+//iOS ç…§ç‰‡é€‰æ‹©æ ·å¼
 
 interface
 
@@ -228,7 +228,7 @@ begin
     end;
     TPhotoScalingMode.StretchWithFit:
     begin
-      //²»Ê§ÕæÆ½ÆÌÍ¼ĞÎ  ½ØÈ¡Í¼Æ¬ÖĞ¼ä²¿·Ö
+      //ä¸å¤±çœŸå¹³é“ºå›¾å½¢  æˆªå–å›¾ç‰‡ä¸­é—´éƒ¨åˆ†
       // Calc ratios
       if InpRect.Width > 0 then
         XAspect := LocRect.Width / InpRect.Width
@@ -287,7 +287,7 @@ begin
   DestRect.Inflate(-2, -2);
 
   Canvas.DrawBitmap(ABitmap, InpRect, DestRect, Params.AbsoluteOpacity);
-  //»æÖÆ ¹´Ñ¡×´Ì¬
+  //ç»˜åˆ¶ å‹¾é€‰çŠ¶æ€
   if not FSelected then
     ABitmap:=FNormalBitMap
   else
