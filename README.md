@@ -54,3 +54,6 @@ Some Firemonkey UI Controls By Myself
  
 +CalendarControl
     CalendarControl is uses a listview like iOS Calendar style
+
++iOSAlbumSelection
+    iOS Photos Selection,Show All Photos and Albums.
