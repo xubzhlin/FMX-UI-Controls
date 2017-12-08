@@ -1,6 +1,6 @@
 unit iOSapi.Photos.Manager;
-// iOS Ïà²á »º´æ µ¥Ôª
-// »º´æ ÓÃ»§Ïà²áÄ¿Â¼ Óë ×î½üÕ¹Ê¾µÄÕÕÆ¬
+// iOS ç›¸å†Œ ç¼“å­˜ å•å…ƒ
+// ç¼“å­˜ ç”¨æˆ·ç›¸å†Œç›®å½• ä¸ æœ€è¿‘å±•ç¤ºçš„ç…§ç‰‡
 
 interface
 
@@ -21,11 +21,11 @@ type
     property BitMap: TBitMap read FBitMap;
   end;
 
-  // iOSÏà²á×ÊÔ´Àà
+  // iOSç›¸å†Œèµ„æºç±»
   TAssetCollectionCache = class(TCustomCache)
   private
-    FTitle: string; // Ãû³Æ
-    FIdentifier: string; // Ê¶±ğÂë
+    FTitle: string; // åç§°
+    FIdentifier: string; // è¯†åˆ«ç 
     FPhotoCount: Integer;
     procedure DoGetBitMap(Collection: PHAssetCollection);
     procedure DoBitMapResultHandler(param1: UIImage; param2: NSDictionary);
@@ -38,7 +38,7 @@ type
     property PhotoCount:Integer read FPhotoCount;
   end;
 
-  // iOSÕÕÆ¬×ÊÔ´Àà
+  // iOSç…§ç‰‡èµ„æºç±»
   TAssetPhotoCache = class(TCustomCache)
   private
     FIndex:Integer;
@@ -63,40 +63,40 @@ type
     property Index:Integer read FIndex;
   end;
 
-  // iOS ÕÕÆ¬¹ÜÀíÀà
-  // ÓÃÓÚ¹ÜÀíÏà²á
-  // ×î½üÕ¹Ê¾Ïà²áÕÕÆ¬
+  // iOS ç…§ç‰‡ç®¡ç†ç±»
+  // ç”¨äºç®¡ç†ç›¸å†Œ
+  // æœ€è¿‘å±•ç¤ºç›¸å†Œç…§ç‰‡
   TiOSPhotosManager = class(TObject)
   private
     function StrToNSArray(AStr: String): NSArray;
   private
-    // Ïà²á ×Ê²ú¼¯ºÏ
-    FUserLibraryIndex:Integer;  //½º¾íÏà»ú Ë÷Òı
+    // ç›¸å†Œ èµ„äº§é›†åˆ
+    FUserLibraryIndex:Integer;  //èƒ¶å·ç›¸æœº ç´¢å¼•
     FCollectionSuccessCount:Integer;
     FCollectionCount:Integer;
-    FCollectionCacheList: TObjectList<TAssetCollectionCache>; // Ïà²áÁĞ±í
-    FOnCollectionSuccess: TNotifyEvent; // Ïà²á»Øµ÷
+    FCollectionCacheList: TObjectList<TAssetCollectionCache>; // ç›¸å†Œåˆ—è¡¨
+    FOnCollectionSuccess: TNotifyEvent; // ç›¸å†Œå›è°ƒ
     procedure DoClearCollections;
     procedure DoInit;
-    procedure DoGetCollections; // »ñÈ¡Ïà²áÁĞ±í
-    procedure CollectionsHandler(param1: PHAuthorizationStatus); // È¨ÏŞ»Øµ÷
+    procedure DoGetCollections; // è·å–ç›¸å†Œåˆ—è¡¨
+    procedure CollectionsHandler(param1: PHAuthorizationStatus); // æƒé™å›è°ƒ
     procedure CollectionsBlock(param1: ObjectType; param2: NSUInteger; param3: PBoolean);
     procedure DoGetCollectionsSuccess;
     procedure DoCollectionHandler(Sender: TObject);
   private
-    // ÕÕÆ¬ ×Ê²ú¼¯ºÏ
+    // ç…§ç‰‡ èµ„äº§é›†åˆ
     FPhotoSuccessCount:Integer;
     FPhotoCount:Integer;
     FPhotosCacheList: TObjectList<TAssetPhotoCache>;
-    FCureeCollectionIdentifier: string; // µ±Ç°Ïß³Ì±êÊ¶
-    FOnPhotoSuccess: TNotifyEvent; // Ïà²á»Øµ÷
-    FOnHignQualityBitMapSuccess: TNotifyEvent; //¸ßÇåÍ¼Æ¬»Øµ÷
+    FCureeCollectionIdentifier: string; // å½“å‰çº¿ç¨‹æ ‡è¯†
+    FOnPhotoSuccess: TNotifyEvent; // ç›¸å†Œå›è°ƒ
+    FOnHignQualityBitMapSuccess: TNotifyEvent; //é«˜æ¸…å›¾ç‰‡å›è°ƒ
     FOnPhotoChange:TNotifyEvent;
     procedure DoClearPhotos;
     procedure DoGetPhotos;
     procedure PhotosBlock(param1: ObjectType; param2: NSUInteger; param3: PBoolean);
     procedure DoPhotosSuccess;
-    procedure DoGetPhotosHandler(Sender: TObject); // »ñÈ¡µ±Ç°Ïà²áÕÕÆ¬
+    procedure DoGetPhotosHandler(Sender: TObject); // è·å–å½“å‰ç›¸å†Œç…§ç‰‡
     procedure DoPhotoChange(Sender:TObject);
     procedure DoHignQualityPhotoChange(Sender:TObject);
     procedure SetCureeCollectionIdentifier(const Value: string);
@@ -123,7 +123,7 @@ type
 implementation
 
 var
-  ThumbnailPhotoSize: TSize; // Í¼Æ¬ ´óĞ¡
+  ThumbnailPhotoSize: TSize; // å›¾ç‰‡ å¤§å°
 
 { TAssetCollectionCache }
 
@@ -156,7 +156,7 @@ begin
     end
     else
     begin
-      //Í¼Æ¬·¢Éú±ä»¯
+      //å›¾ç‰‡å‘ç”Ÿå˜åŒ–
       ABitMap := UIImageToBitmap(param1, 0, TSize.Create(trunc(param1.size.Width),
         trunc(param1.size.Height)));
       FBitMap.SetSize(ABitMap.Width, ABitMap.Height);
@@ -191,7 +191,7 @@ begin
   end
   else
   begin
-    //Ã»ÓĞÕÕÆ¬»ñÈ¡
+    //æ²¡æœ‰ç…§ç‰‡è·å–
     if Assigned(FOnBitMapResultHandler) then
       FOnBitMapResultHandler(Self);
   end;
@@ -259,7 +259,7 @@ begin
     end
     else
     begin
-      //ÕÕÆ¬¼ÓÔØÍê±Ï
+      //ç…§ç‰‡åŠ è½½å®Œæ¯•
       DoPhotosSuccess;
     end;
   end
@@ -287,7 +287,7 @@ begin
     inc(FPhotoSuccessCount);
     if FPhotoCount = FPhotoSuccessCount then
     begin
-      //Ïà²áÊı¾İ¼ÓÔØÍê±Ï
+      //ç›¸å†Œæ•°æ®åŠ è½½å®Œæ¯•
       DoPhotosSuccess;
     end;
   end;
@@ -319,7 +319,7 @@ begin
   ThumbnailPhotoSize := ThumbnailSize;
   FCollectionCacheList := TObjectList<TAssetCollectionCache>.Create;
   FPhotosCacheList := TObjectList<TAssetPhotoCache>.Create;
-  // ³õÊ¼»¯ »ñÈ¡ Ïà²áÁĞ±í
+  // åˆå§‹åŒ– è·å– ç›¸å†Œåˆ—è¡¨
 end;
 
 destructor TiOSPhotosManager.Destroy;
@@ -357,7 +357,7 @@ begin
     inc(FCollectionSuccessCount);
     if FCollectionCount = FCollectionSuccessCount then
     begin
-      //Ïà²áÊı¾İ¼ÓÔØÍê±Ï
+      //ç›¸å†Œæ•°æ®åŠ è½½å®Œæ¯•
       DoGetCollectionsSuccess;
     end;
   end;
@@ -370,16 +370,16 @@ begin
   Status := TPHPhotoLibrary.OCClass.authorizationStatus;
   case Status of
     PHAuthorizationStatusDenied, PHAuthorizationStatusRestricted:
-      DoGetCollectionsSuccess;   //Ã»ÓĞÈ¨ÏŞ Ö±½Ó·µ»Ø
+      DoGetCollectionsSuccess;   //æ²¡æœ‰æƒé™ ç›´æ¥è¿”å›
     PHAuthorizationStatusNotDetermined:
       begin
         TPHPhotoLibrary.OCClass.requestAuthorization(CollectionsHandler);
-        //Ñ¯ÎÊÈ¨ÏŞ
+        //è¯¢é—®æƒé™
       end;
     PHAuthorizationStatusAuthorized:
       begin
         DoGetCollections;
-        //Ö±½Ó¼ÓÔØÊı¾İ
+        //ç›´æ¥åŠ è½½æ•°æ®
       end;
   end;
 end;
@@ -489,7 +489,7 @@ begin
     end
     else
     begin
-      //Í¼Æ¬·¢Éú±ä»¯
+      //å›¾ç‰‡å‘ç”Ÿå˜åŒ–
       ABitMap := UIImageToBitmap(param1, 0, TSize.Create(trunc(param1.size.Width),
         trunc(param1.size.Height)));
       FBitMap.SetSize(ABitMap.Width, ABitMap.Height);
