@@ -1,0 +1,7 @@
+inherited frmCalendarFrame: TfrmCalendarFrame
+  inherited lytTop: TLayout
+    inherited btnBack: TSpeedButton
+      OnClick = btnBackClick
+    end
+  end
+end

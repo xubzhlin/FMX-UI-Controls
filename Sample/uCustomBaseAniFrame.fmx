@@ -1,0 +1,13 @@
+object FrmBaseAniFrame: TFrmBaseAniFrame
+  Size.Width = 320.000000000000000000
+  Size.Height = 357.000000000000000000
+  Size.PlatformDefault = False
+  object content: TRectangle
+    Align = Contents
+    Fill.Color = claWhite
+    Size.Width = 320.000000000000000000
+    Size.Height = 357.000000000000000000
+    Size.PlatformDefault = False
+    Stroke.Kind = None
+  end
+end

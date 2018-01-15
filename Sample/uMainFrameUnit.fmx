@@ -1,0 +1,50 @@
+inherited frmMainFrame: TfrmMainFrame
+  Size.Height = 396.000000000000000000
+  inherited content: TRectangle
+    Size.Height = 396.000000000000000000
+  end
+  object Text1: TText
+    Align = Top
+    Size.Width = 320.000000000000000000
+    Size.Height = 65.000000000000000000
+    Size.PlatformDefault = False
+    Text = #29992#20110#23637#31034'FMX-UI-Controls'#20013#25511#20214#30340#20351#29992#26041#27861
+  end
+  object VertScrollBox1: TVertScrollBox
+    Align = Client
+    Size.Width = 320.000000000000000000
+    Size.Height = 251.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    Viewport.Width = 320.000000000000000000
+    Viewport.Height = 251.000000000000000000
+    object GridLayout1: TGridLayout
+      Align = Top
+      ItemHeight = 100.000000000000000000
+      ItemWidth = 100.000000000000000000
+      Orientation = Horizontal
+      Size.Width = 320.000000000000000000
+      Size.Height = 217.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      OnResize = GridLayout1Resize
+    end
+  end
+  object Layout1: TLayout
+    Align = Top
+    Position.Y = 103.000000000000000000
+    Size.Width = 320.000000000000000000
+    Size.Height = 42.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+  end
+  object CheckBox1: TCheckBox
+    Align = Top
+    Position.Y = 65.000000000000000000
+    Size.Width = 320.000000000000000000
+    Size.Height = 38.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Text = 'is hide SearchBox when frame visible is false'
+  end
+end

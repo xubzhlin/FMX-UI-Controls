@@ -1,0 +1,27 @@
+inherited frmBaseFrame: TfrmBaseFrame
+  object lytTop: TLayout
+    Align = Top
+    Margins.Top = 20.000000000000000000
+    Position.Y = 20.000000000000000000
+    Size.Width = 320.000000000000000000
+    Size.Height = 40.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object btnBack: TSpeedButton
+      Align = Left
+      Margins.Left = 4.000000000000000000
+      Position.X = 4.000000000000000000
+      Size.Width = 40.000000000000000000
+      Size.Height = 40.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'backtoolbutton'
+    end
+    object txtTitle: TText
+      Align = Client
+      Margins.Right = 40.000000000000000000
+      Size.Width = 236.000000000000000000
+      Size.Height = 40.000000000000000000
+      Size.PlatformDefault = False
+    end
+  end
+end

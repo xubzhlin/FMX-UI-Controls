@@ -1,0 +1,137 @@
+unit FMX.iOSNativeSearchBox;
+
+interface
+
+uses System.SysUtils, System.Classes, FMX.Types, FMX.Controls, FMX.Edit, FMX.SearchBox;
+
+type
+  TFMXiOSNativeSearchBox = class(TSearchBox)
+  private
+    FNativeEdit:TEdit;
+    FContentLayout: TControl;
+    FButtonsLayout: TControl;
+    FClearButton: TEditButton;
+    procedure DoChangeTracking(Sender:TObject);
+    procedure RealignButtons;
+    procedure DoCreateNativeEdit;
+    procedure DoClearClick(Sender:TObject);
+    procedure SetText(const Value: string); override;
+  protected
+    procedure ApplyStyle; override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure SetNativeVisible(AValue:Boolean);
+  end;
+
+
+implementation
+
+{ TFMXiOSNativeSearchBox }
+
+procedure TFMXiOSNativeSearchBox.ApplyStyle;
+begin
+  inherited;
+  FindStyleResource<TControl>('content', FContentLayout);
+  FindStyleResource<TControl>('buttons', FButtonsLayout);
+  FindStyleResource<TEditButton>('clearbutton', FClearButton);
+  FClearButton.OnClick:=DoClearClick;
+  DoCreateNativeEdit;
+end;
+
+constructor TFMXiOSNativeSearchBox.Create(AOwner: TComponent);
+begin
+  inherited;
+  HitTest:=False;
+  ReadOnly:=True;
+end;
+
+destructor TFMXiOSNativeSearchBox.Destroy;
+begin
+  FNativeEdit.Free;
+  inherited;
+end;
+
+procedure TFMXiOSNativeSearchBox.DoChangeTracking(Sender:TObject);
+var
+  Lower: string;
+begin
+  Lower := FNativeEdit.Text.Trim.ToLower;
+  if Model.SearchResponder <> nil then
+    Model.SearchResponder.SetFilterPredicate(function (X: string): Boolean
+      begin
+        Result := True;
+        if Assigned(OnFilter) then
+          OnFilter(Owner, FNativeEdit.Text, X, Result)
+        else
+          Result := Lower.IsEmpty or X.ToLower.Contains(Lower);
+      end);
+  RealignButtons;
+end;
+
+procedure TFMXiOSNativeSearchBox.DoClearClick(Sender:TObject);
+begin
+  if FNativeEdit.Observers.IsObserving(TObserverMapping.EditLinkID) then
+    if not TLinkObservers.EditLinkEdit(FNativeEdit.Observers) then
+      Exit; // Can't change
+  FNativeEdit.Text := string.Empty;
+  if FNativeEdit.Observers.IsObserving(TObserverMapping.EditLinkID) then
+    TLinkObservers.EditLinkModified(FNativeEdit.Observers);
+  if FNativeEdit.Observers.IsObserving(TObserverMapping.ControlValueID) then
+    TLinkObservers.ControlValueModified(FNativeEdit.Observers);
+end;
+
+procedure TFMXiOSNativeSearchBox.DoCreateNativeEdit;
+begin
+  FNativeEdit:=TEdit.Create(Self);
+  if FContentLayout<>nil then
+  begin
+    FNativeEdit.Parent:=FContentLayout;
+    //FNativeEdit.Margins.Right:=FClearButton.Width;
+  end
+  else
+  begin
+    FNativeEdit.Parent:=Self;
+    FNativeEdit.Margins.Left:=28;
+    FNativeEdit.Margins.Right:=28;
+  end;
+  FNativeEdit.Align:=TAlignLayout.Client;
+  FNativeEdit.StyleLookup:='transparentedit';
+  FNativeEdit.ControlType:=TControlType.Platform;
+  FNativeEdit.OnChangeTracking:=DoChangeTracking;
+end;
+
+procedure TFMXiOSNativeSearchBox.RealignButtons;
+begin
+  if (FButtonsLayout <> nil) and (FClearButton <> nil) and (FNativeEdit<>nil) then
+  begin
+    if FNativeEdit.Text.IsEmpty then
+    begin
+      FButtonsLayout.Width := 0;
+      //FNativeEdit.Width:=FNativeEdit.Width + FClearButton.Width;
+    end
+    else
+    begin
+      FButtonsLayout.Width := FClearButton.Width;
+      //FNativeEdit.Width:=FNativeEdit.Width - FClearButton.Width;
+    end;
+  end;
+end;
+
+procedure TFMXiOSNativeSearchBox.SetNativeVisible(AValue: Boolean);
+begin
+  if (FNativeEdit<>nil) then
+  begin
+    FNativeEdit.Visible:=AValue;
+  end;
+end;
+
+procedure TFMXiOSNativeSearchBox.SetText(const Value: string);
+begin
+  if FNativeEdit<>nil then
+    DoClearClick(FNativeEdit)
+  else
+    inherited;
+end;
+
+end.
