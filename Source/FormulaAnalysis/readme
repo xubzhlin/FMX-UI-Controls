@@ -1,0 +1,21 @@
+    四则运算解析
+    内置运算数：整型、浮点型 (0123456789.)
+    内置运算符: 加、减、乘、除、幕、百分号、阶乘 (+-*/^%!)
+    运算方法
+      多参数分隔符(,)
+      运算方法格式：funciton(Parame1,parame2....)
+      比如:max(Parame1,parame2....)、mod(Parame1,parame2)
+          2 mod 2 属于非法的格式
+    内置运算方法：
+      统计函数：最大值(Max)、最小值(Min)、绝对值(Abs)、和(sum)、平均数(avg)、标准方差(stddev)
+      后续会慢慢加上一些计算方法
+    自定义运算方法:
+      继承 TFormulaFunction 重载 Calculate
+
+    不含参数的公式计算：
+      TFormulaAnalysisService.Parse('2*(1+3)/2');
+    含参数的公式计算：
+      SignParame:=TStringList.Create;
+      SignParame.Add('A=1');
+      SignParame.Add('B=2');
+      TFormulaAnalysisService.Parse('A*(1+B)/2', SignParame);
