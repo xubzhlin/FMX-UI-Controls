@@ -1,1 +1,11 @@
 It's base on https://github.com/barteksc/AndroidPdfViewerV1
+
+
+      FPDFView := TJPDFView.JavaClass.init(SharedActivityContext, nil);
+      FPDFView.setBackgroundColor(TJColor.JavaClass.LTGRAY);
+      FPdfView.fromFile(TJFile.JavaClass.init(StringToJString(FilePath)))
+              .defaultPage(0)
+              .enableAnnotationRendering(true)
+              .spacing(10) // in dp
+              .pageFitPolicy(TJFitPolicy.JavaClass.BOTH)
+              .load();
