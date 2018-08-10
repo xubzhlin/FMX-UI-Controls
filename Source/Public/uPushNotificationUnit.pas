@@ -16,11 +16,10 @@ uses
   ,FMX.PushNotification.iOS
   ,uRestClientServiceUnit
   {$ENDIF}
-  ,uLogsUnit
   ;
 {$IFDEF ANDROID}
 const
-  cDefaultPushService = 'com.embarcadero.services.IotPushService';
+  cDefaultPushService = '';  //å®‰å“æ¨é€æœåŠ¡åç§°
 {$ENDIF}
 
 type
@@ -38,7 +37,7 @@ type
     {$IFDEF iOS}
     procedure PushServiceChange(Sender: TObject; AChange: TPushService.TChanges);
     procedure RegisterDeviceToken(DeviceToken:string);
-    // ÍÆËÍ·şÎñ·¢Éú¸Ä±ä Ö»ÓÃÓÚiOS
+    // æ¨é€æœåŠ¡å‘ç”Ÿæ”¹å˜ åªç”¨äºiOS
     procedure ReceiveNotification(Sender: TObject; const ANotification: TPushServiceNotification);
     {$ENDIF}
     {$IFDEF ANDROID}
@@ -93,7 +92,7 @@ end;
 
 procedure TPushNotification.RegisterPushNotification;
 begin
-  LogInfo('FOSSMNT RegisterPushNotification');
+  
 {$IFDEF iOS}
   if APushService=nil then
     APushService := TPushServiceManager.Instance.GetServiceByName(TPushService.TServiceNames.APS);
@@ -110,7 +109,7 @@ begin
 
 {$ENDIF}
 {$IFDEF ANDROID}
-  //Æô¶¯·şÎñ
+  //å¯åŠ¨æœåŠ¡
   TLocalServiceConnection.StartService(cDefaultPushService);
 
   if AServiceConnection=nil then
@@ -119,7 +118,7 @@ begin
   AServiceConnection.OnConnected:=DoServiceConnected;
   AServiceConnection.OnHandleMessage := DoHandleMessage;
 
-  //°ó¶¨·şÎñÍ¨Ñ¶
+  //ç»‘å®šæœåŠ¡é€šè®¯
   AServiceConnection.BindService(TAndroidHelper.JStringToString(TAndroidHelper.Context.getPackageName()), cDefaultPushService);
 {$ENDIF}
 end;
@@ -130,7 +129,7 @@ procedure TPushNotification.PushServiceChange(Sender: TObject;
 var
   ADeviceToken:String;
 begin
-  LogInfo('FOSSMNT PushServiceChange');
+  
   if ((TPushService.TChange.DeviceToken in AChange)
      and (TPushService.TChange.Status in AChange)) then
   begin
@@ -159,8 +158,8 @@ var
   ThisJson:string;
   JSONObject:TJSONObject;
 begin
-  LogInfo('FOSSMNT RegisterDeviceToken:'+DeviceToken);
-  //×¢²áÁîÅÆ
+ 
+  //æ³¨å†Œä»¤ç‰Œ
   JSONObject:=TJSONObject.Create;
   try
     //{"employeeNum":1454,"systemIdenty":5,"userPlatform":3,"deviceToken":"2f23raf3"}
@@ -193,7 +192,7 @@ end;
 
 procedure TPushNotification.ReceiveNotification(Sender: TObject; const ANotification: TPushServiceNotification);
 begin
-  // Ç°Ì¨ÊÕµ½ÍÆËÍĞÅÏ¢
+  // å‰å°æ”¶åˆ°æ¨é€ä¿¡æ¯
 end;
 
 {$ENDIF}
@@ -206,7 +205,7 @@ var
 const
   Set_EmployeeNum = 123;
 begin
-  // ´«Èë Iot Ö÷Ìâ
+  // ä¼ å…¥ Iot ä¸»é¢˜
   LBundle := TJBundle.Create;
   LBundle.putInt(TAndroidHelper.StringToJString('EmployeeNum'), GEmployeeNum);
   LBundle.putInt(TAndroidHelper.StringToJString('SystemIdenty'), Ord(GSystemIdenty));
@@ -219,7 +218,7 @@ end;
 
 procedure TPushNotification.DoHandleMessage(const AMessage: JMessage);
 begin
-  //½ÓÊÜServiceĞÅÏ¢
+  //æ¥å—Serviceä¿¡æ¯
 end;
 {$ENDIF}
 
