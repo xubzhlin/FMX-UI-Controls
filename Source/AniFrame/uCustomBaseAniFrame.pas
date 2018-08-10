@@ -12,13 +12,9 @@ uses
 type
 
   TFrmBaseAniFrame = class(TFrame)
-    content: TRectangle;
+    background: TRectangle;
   protected const
-  {$IFDEF POSIX}
     MinimalSpeedThreshold = 150;
-  {$ELSE}
-    MinimalSpeedThreshold = 400;
-  {$ENDIF}
     HidingThreshold = 0.5;
     ClickAreaExpansion = 5;
     DefaultDurationSliding = 0.4;
@@ -32,17 +28,17 @@ type
     end;
   private
     { Private declarations }
-    FNeedFreeAfterBack:Boolean;
-    FShowAnimation:TFloatAnimation;
-    FOnAfterShow:TNotifyEvent;
-    FOnAfterBack:TNotifyEvent;
-    [waek] FTarget:TFmxObject;
-    FDrawerCaptured:Boolean;
+    FNeedFreeAfterBack: Boolean;
+    FShowAnimation: TFloatAnimation;
+    FOnAfterShow: TNotifyEvent;
+    FOnAfterBack: TNotifyEvent;
+    FTarget: TList<TFmxObject>;
+    FDrawerCaptured: Boolean;
     FMousePressedAbsolutePosition: TPointF;
     FPreviousOffset: Single;
     FTracksInfo:TList<TTrackingInfo>;
     FIsShowing:Boolean;
-    FCanRePaint:Boolean;
+    FIsCanClicked:Boolean;
 
     procedure DoDetailOverlayMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X: Single; Y: Single); virtual;
     procedure DoDetailOverlayMouseMove(Sender: TObject; Shift: TShiftState; X: Single; Y: Single); virtual;
@@ -62,9 +58,22 @@ type
     procedure DoTargetBack(ASpeed:Single);
     procedure DoTargetShow(ASpeed:Single);
 
-    procedure SetCanRePaint(const Value: Boolean);
+    function GetTarget: TFmxObject;
+    procedure SetTarget(const Value: TFmxObject);
+
+    procedure SetTargetOrder;
+
+    procedure SetMainTargetToTarget;
+    function GetMainTaget(CurreTarget:TFmxObject):TFrmBaseAniFrame;
+
+    procedure DoAddTarget(const Value: TFmxObject);
+    procedure SetIsShowing(const Value: Boolean);
 
   protected
+    //在 FIsShowing 没有在前台显示得时候 不绘制
+    //重载了 Paint PaintChildren
+    procedure Paint; override;
+    procedure PaintChildren; override;
     procedure SetBounds(X, Y, AWidth, AHeight: Single); override;
     procedure DoBeforeBack; virtual;
     procedure DoBeforeTargetBack; virtual;
@@ -84,11 +93,11 @@ type
     property ShowAnimation:TFloatAnimation read FShowAnimation;
   public
     { Public declarations }
-    procedure Back;
-    procedure Show;
+    procedure Back; virtual;
+    procedure Show; virtual;
 
-    procedure TargetBack;
-    procedure TargetShow;
+    procedure TargetBack; virtual;
+    procedure TargetShow; virtual;
 
     constructor Create(AOwner: TComponent; AParent: TFmxObject; ATarget:TFmxObject); virtual;
     destructor Destroy; override;
@@ -96,28 +105,25 @@ type
     property NeedFreeAfterBack:Boolean read FNeedFreeAfterBack write FNeedFreeAfterBack;
     property OnAfterShow:TNotifyEvent read FOnAfterShow write FOnAfterShow;
     property OnAfterBack:TNotifyEvent read FOnAfterBack write FOnAfterBack;
-    property Target:TFmxObject read FTarget write FTarget;
-    property CanRePaint:Boolean read FCanRePaint write SetCanRePaint;
-    property IsShowing:Boolean read FIsShowing write FIsShowing;
+    property Target: TFmxObject read GetTarget write SetTarget;
+    property IsShowing:Boolean read FIsShowing write SetIsShowing;
+    property IsCanClicked:Boolean read FIsCanClicked write FIsCanClicked;
   end;
-
-  TAniFrameManager = class(TObject)
-  private
-
-  end;
-
-implementation
-
 var
+
   GShadowedOverlay:TShadowedOverlayLayout;
   //公用一个 TShadowedOverlayLayout
+implementation
+
+
+
 {$R *.fmx}
 
 procedure RegisterDetailOverlay;
 begin
   GShadowedOverlay:=TShadowedOverlayLayout.Create(nil);
   GShadowedOverlay.Stored := False;
-  GShadowedOverlay.Mode := TOverlayMode.AllLocalArea;
+  GShadowedOverlay.Mode := TOverlayMode.LeftSide;
   GShadowedOverlay.Color := TAlphaColors.Black;
   GShadowedOverlay.Opacity := 1;
   GShadowedOverlay.Align := TAlignLayout.Contents;
@@ -125,7 +131,7 @@ begin
 end;
 procedure UnregisterDetailOverlay;
 begin
-  GShadowedOverlay.Free;
+  GShadowedOverlay.DisposeOf;
 end;
 { TFrmBaseFrame }
 
@@ -144,11 +150,10 @@ begin
     Exit;
   Interval := DateTimeToTimeStamp(FTracksInfo.Last.Time - FTracksInfo.First.Time);
   Distance := FTracksInfo.Last.Position.X - FTracksInfo.First.Position.X;
-  if Interval.Time = 0 then
+  if (Interval.Time = 0) or (Distance < 0) then
     Result := DefaultDurationSliding
   else
     Result := (Distance / Interval.Time) * MSecsPerSec;
-
 end;
 
 function TFrmBaseAniFrame.CalculateSlidingTime(const ASpeed: Single): Single;
@@ -171,9 +176,9 @@ end;
 procedure TFrmBaseAniFrame.CanRePaiintChanged;
 begin
   if CanRePaint then
-    content.EndUpdate
+    background.EndUpdate
   else
-    content.BeginUpdate;
+    background.BeginUpdate;
 end;
 
 procedure TFrmBaseAniFrame.CaptureDrawer(const AX, AY: Single);
@@ -187,13 +192,13 @@ constructor TFrmBaseAniFrame.Create(AOwner: TComponent; AParent: TFmxObject; ATa
 begin
   inherited Create(AOwner);
   FNeedFreeAfterBack:=True;
-  FCanRePaint:=True;
 
   FTracksInfo:=TList<TTrackingInfo>.Create;
 
   Align:=TAlignLayout.None;
   Parent:=AParent;
-  FTarget:=ATarget;
+  Parent.AddFreeNotify(Self);
+  DoAddTarget(ATarget);
 
   FShowAnimation:=TFloatAnimation.Create(nil);
   FShowAnimation.Parent := Self;
@@ -212,12 +217,14 @@ begin
     Width:=TControl(AParent).Width;
     Height:=TControl(AParent).Height;
   end;
-  if FTarget<>nil then
+  if Target is TFrmBaseAniFrame then
     Position.X:=Width
   else
     Position.X:=0;
   Position.Y:=0;
+  {$IFNDEF ANDROID}
   Application.ProcessMessages;
+  {$ENDIF}
 end;
 
 destructor TFrmBaseAniFrame.Destroy;
@@ -235,48 +242,64 @@ begin
     Parent:=nil;
   end;
 
+  FTarget.Free;
   FTracksInfo.Free;
   FShowAnimation.Free;
   inherited Destroy;
 end;
 
+procedure TFrmBaseAniFrame.DoAddTarget(const Value: TFmxObject);
+begin
+  if FTarget=nil then
+    FTarget:=TList<TFMXObject>.Create;
+  FTarget.Add(Value);
+end;
+
 procedure TFrmBaseAniFrame.DoAfterBack(Sender: TObject);
 begin
+  IsShowing := False;
   if Assigned(FOnAfterBack) then
     FOnAfterBack(Sender);
-  //在 Back 后 释放掉自己
+  if (FTarget<>nil) and (FTarget.Count>0) then
+    FTarget.Delete(FTarget.Count-1);
+  // 在 Back 后 释放掉自己
   if FNeedFreeAfterBack then
-    DisposeOf
+  begin
+    Parent:=nil;
+    DisposeOf;
+  end;
 end;
 
 procedure TFrmBaseAniFrame.DoAfterShow(Sender: TObject);
 begin
-  CanRePaint:=True;
+  SetMainTargetToTarget;
+  FIsCanClicked:=True;
   if Assigned(FOnAfterShow) then
     FOnAfterShow(Sender);
 end;
 
 procedure TFrmBaseAniFrame.DoAfterTargetBack(Sender: TObject);
 begin
-  //在进入后面 不设置 CanRePaint 让他不刷新
-  //CanRePaint:=True;
+  IsShowing:=True;
 end;
 
 procedure TFrmBaseAniFrame.DoAfterTargetShow(Sender: TObject);
 begin
-  CanRePaint:=True;
+  SetTargetOrder;
+  FIsCanClicked:=True;
 end;
 
 procedure TFrmBaseAniFrame.DoBack(ASpeed: Single);
 begin
   DoBeforeBack;
   //返回上一级
-  FIsShowing:=False;
-  if FTarget is TFrmBaseAniFrame then
+  if Target is TFrmBaseAniFrame then
   begin
-    TFrmBaseAniFrame(FTarget).IsShowing:=True;
-    TFrmBaseAniFrame(FTarget).LinkDetailOverlayToSelf;
+    TFrmBaseAniFrame(Target).IsShowing := True;
+    TFrmBaseAniFrame(Target).LinkDetailOverlayToSelf;
+    TFrmBaseAniFrame(Target).TargetShow;
   end;
+
   if SameValue(ASpeed, DefaultDurationSliding, TEpsilon.Vector) then
     FShowAnimation.Duration := DefaultDurationSliding
   else
@@ -286,34 +309,26 @@ begin
   FShowAnimation.OnFinish:=DoAfterBack;
   FShowAnimation.Start;
 
-  if FTarget is TFrmBaseAniFrame then
-    TFrmBaseAniFrame(FTarget).TargetShow;
 end;
 
 procedure TFrmBaseAniFrame.DoBeforeBack;
 begin
-  //这里会使滚动条失效 不明白什么原因？
-  //Frame Dispose 以后 再Create 如果里面有滚动的 偶尔会失效
-  //CanRePaint:=False;
+  FIsCanClicked:=False;
 end;
 
 procedure TFrmBaseAniFrame.DoBeforeShow;
 begin
-  //在显示得时候不设置 CanRePaint 需要初始化控件
-  //在移动端会有一些问题 Windows 正常
-{$IFNDEF POSIX}
-  CanRePaint:=False;
-{$ENDIF}
+  IsShowing:=True;
 end;
 
 procedure TFrmBaseAniFrame.DoBeforeTargetBack;
 begin
-  CanRePaint:=False;
+  FIsCanClicked:=False;
 end;
 
 procedure TFrmBaseAniFrame.DoBeforeTargetShow;
 begin
-  CanRePaint:=False;
+  IsShowing:=True;
 end;
 
 procedure TFrmBaseAniFrame.DoDetailOverlayMouseDown(Sender: TObject;
@@ -325,7 +340,13 @@ procedure TFrmBaseAniFrame.DoDetailOverlayMouseDown(Sender: TObject;
 var
    MouseAbsoultePos: TPointF;
 begin
-  if Self.FTarget = nil then exit;
+  if not (Target is TFrmBaseAniFrame) then exit;
+  FShowAnimation.Stop;
+  if (Target<>nil) and (Target is TFrmBaseAniFrame) then
+  begin
+    TFrmBaseAniFrame(Target).FShowAnimation.Stop;
+    TFrmBaseAniFrame(Target).IsShowing := True;
+  end;
 {$IFDEF ANDROID}
   MouseAbsoultePos := DetailOverlay.LocalToAbsolute(TPointF.Create(X, Y));
   if PointInFrame(MouseAbsoultePos) then
@@ -337,8 +358,6 @@ begin
   FDrawerCaptured:=True;
   CaptureDrawer(X, Y);
 {$ENDIF}
-  if (FTarget<>nil) and (FTarget is TFrmBaseAniFrame) and (not TFrmBaseAniFrame(FTarget).Visible) then
-    TFrmBaseAniFrame(FTarget).Visible := True;
   ResetFocus;
 end;
 
@@ -366,9 +385,10 @@ begin
     begin
       Position.X := Position.X + Offset - FPreviousOffset;
       TrackInfo(X, Y);
-      if (FTarget<>nil) and (FTarget is TFrmBaseAniFrame) then
+      if Target is TFrmBaseAniFrame then
       begin
-        TFrmBaseAniFrame(FTarget).Position.X:= TFrmBaseAniFrame(FTarget).Position.X + (Offset - FPreviousOffset) /2;
+        TFrmBaseAniFrame(Target).Position.X := TFrmBaseAniFrame(Target)
+          .Position.X + (Offset - FPreviousOffset) / 2;
       end;
       UpdateShadowOpacity(True);
       FPreviousOffset := Offset;
@@ -397,6 +417,7 @@ begin
     DoBack(NormalizedSpeed)
   else
     DoShow(NormalizedSpeed);
+  FTracksInfo.Clear;
   FPreviousOffset:=0;
   FDrawerCaptured := False;
 end;
@@ -411,10 +432,9 @@ procedure TFrmBaseAniFrame.DoShow(ASpeed: Single);
 begin
 
   DoBeforeShow;
-  if FTarget is TFrmBaseAniFrame then
-    TFrmBaseAniFrame(FTarget).IsShowing:=False;
-  FIsShowing:=True;
+  IsShowing := True;
   LinkDetailOverlayToSelf;
+  DetailOverlay.BringToFront;
   BringToFront;
   if SameValue(ASpeed, DefaultDurationSliding, TEpsilon.Vector) then
     FShowAnimation.Duration := DefaultDurationSliding
@@ -425,8 +445,8 @@ begin
   FShowAnimation.OnFinish:=DoAfterShow;
   FShowAnimation.Start;
 
-  if FTarget is TFrmBaseAniFrame then
-    TFrmBaseAniFrame(FTarget).TargetBack;
+  if Target is TFrmBaseAniFrame then
+    TFrmBaseAniFrame(Target).TargetBack;
 end;
 
 procedure TFrmBaseAniFrame.DoTargetBack(ASpeed: Single);
@@ -439,14 +459,13 @@ begin
   FShowAnimation.StartValue:=Position.X;
   FShowAnimation.StopValue:= - Self.Width /2;
   FShowAnimation.OnFinish:= DoAfterTargetBack;
-  CanRePaint:=False;
   FShowAnimation.Start;
 end;
 
 procedure TFrmBaseAniFrame.DoTargetShow(ASpeed: Single);
 begin
   DoBeforeTargetShow;
-  BringToFront;
+  //BringToFront;
   if SameValue(ASpeed, DefaultDurationSliding, TEpsilon.Vector) then
     FShowAnimation.Duration := DefaultDurationSliding
   else
@@ -454,13 +473,37 @@ begin
   FShowAnimation.StartValue:=Position.X;
   FShowAnimation.StopValue:=0;
   FShowAnimation.OnFinish:= DoAfterTargetShow;
-  CanRePaint:=False;
   FShowAnimation.Start;
 end;
 
 function TFrmBaseAniFrame.GetDetailOverlay: TShadowedOverlayLayout;
 begin
-  Result:=GShadowedOverlay;
+  Result := GShadowedOverlay;
+end;
+
+function TFrmBaseAniFrame.GetMainTaget(CurreTarget:TFmxObject): TFrmBaseAniFrame;
+var
+  ATarget:TFmxObject;
+begin
+  //if Self = CurreTarget then
+
+  ATarget:=Target;
+  if (ATarget is TFrmBaseAniFrame) then
+  begin
+    FTarget.Delete(FTarget.Count-1);
+    Result:=TFrmBaseAniFrame(ATarget).GetMainTaget(CurreTarget);
+    DoAfterBack(Self);
+  end
+  else
+    Result:=Self;
+end;
+
+function TFrmBaseAniFrame.GetTarget: TFmxObject;
+begin
+  if (FTarget<>nil) and (FTarget.Count>0) then
+    Result:=FTarget.Last
+  else
+    Result:=nil;
 end;
 
 procedure TFrmBaseAniFrame.LinkDetailOverlayToSelf;
@@ -484,7 +527,24 @@ begin
   if Abs(ASpeed) < MinimalSpeedThreshold then
     Result := Position.X >  Width * HidingThreshold
   else
-    Result := ASpeed > 0;
+  begin
+    if ASpeed>0 then
+      Result := True
+    else
+      Result:=False;
+  end;
+end;
+
+procedure TFrmBaseAniFrame.Paint;
+begin
+  if FIsShowing then
+    inherited;
+end;
+
+procedure TFrmBaseAniFrame.PaintChildren;
+begin
+  if FIsShowing then
+    inherited;
 end;
 
 procedure TFrmBaseAniFrame.ResetFocus;
@@ -505,15 +565,21 @@ var
   ScreenWidth, ScreenHeight:Single;
 begin
 {$IFDEF POSIX}
-  //移动端 屏幕旋转的时候 重新设置Size and Position
-  if TPlatformServices.Current.SupportsPlatformService(IFMXScreenService, ScreenService) then
+  // 移动端 屏幕旋转的时候 重新设置Size and Position
+  if not SameValue(AWidth, Width) or not SameValue(AHeight, Height) then
   begin
-    ScreenWidth:= ScreenService.GetScreenSize.X;
-    ScreenHeight:= ScreenService.GetScreenSize.Y;
-    if FIsShowing then
-      inherited SetBounds(0, 0, ScreenWidth, ScreenHeight)
+    if TPlatformServices.Current.SupportsPlatformService(IFMXScreenService,
+      ScreenService) then
+    begin
+      ScreenWidth := ScreenService.GetScreenSize.X;
+      ScreenHeight := ScreenService.GetScreenSize.Y;
+      if FIsShowing then
+        inherited SetBounds(0, 0, ScreenWidth, ScreenHeight)
+      else
+        inherited SetBounds(-ScreenWidth / 2, 0, ScreenWidth, ScreenHeight);
+    end
     else
-      inherited SetBounds(ScreenWidth / 2, 0, ScreenWidth, ScreenHeight);
+      inherited SetBounds(X, Y, AWidth, AHeight);
   end
   else
     inherited SetBounds(X, Y, AWidth, AHeight);
@@ -523,17 +589,70 @@ begin
 
 end;
 
-procedure TFrmBaseAniFrame.SetCanRePaint(const Value: Boolean);
+procedure TFrmBaseAniFrame.SetIsShowing(const Value: Boolean);
 begin
-  if FCanRePaint<>Value then
+  if FIsShowing<>Value then
   begin
-    FCanRePaint := Value;
-    CanRePaiintChanged;
+    FIsShowing := Value;
+
+    if FIsShowing then
+      Repaint;
+  end;
+end;
+
+procedure TFrmBaseAniFrame.SetMainTargetToTarget;
+var
+  MainTarget:TFrmBaseAniFrame;
+begin
+  // 在打开公用Frame时  并且多次调用 下次返回直接 返回到 Main
+  // 这里主要针对 聊天窗口
+  if (not FNeedFreeAfterBack) and (FTarget.Count>1) then
+  begin
+    MainTarget:=GetMainTaget(Self);
+    FTarget.Clear;
+    FTarget.Add(MainTarget);
+  end;
+end;
+
+procedure TFrmBaseAniFrame.SetTarget(const Value: TFmxObject);
+begin
+  if (FTarget<>nil) and (FTarget.Count>0) then
+  begin
+    if Value = nil then
+      FTarget.Clear
+    else
+    begin
+      if FTarget.Last = Value then
+        Exit;
+    end;
+  end;
+  if Value<>nil then
+    DoAddTarget(Value);
+
+end;
+
+procedure TFrmBaseAniFrame.SetTargetOrder;
+var
+  Idx,TIdx: Integer;
+begin
+  //Parent 都是一样的
+  if (Target is TFrmBaseAniFrame) and (Parent<>nil) and (Target.Parent = Parent) then
+  begin
+    if Parent.Children <> nil then
+    begin
+      if (Index - Target.Index<>1) then
+      begin
+        Target.Index:= (Index - 1);
+        TFrmBaseAniFrame(Target).Position.X:= -Width / 2;
+        TFrmBaseAniFrame(Target).Position.Y:=0;
+      end;
+    end;
   end;
 end;
 
 procedure TFrmBaseAniFrame.Show;
 begin
+  Position.X:=Width;
   DoShow(DefaultDurationSliding);
 end;
 
