@@ -1,0 +1,231 @@
+object Form15: TForm15
+  Left = 0
+  Top = 0
+  Caption = 'Batch Deployment'
+  ClientHeight = 461
+  ClientWidth = 746
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  DesignerMasterStyle = 0
+  object Layout1: TLayout
+    Align = Left
+    Margins.Left = 8.000000000000000000
+    Margins.Top = 8.000000000000000000
+    Margins.Right = 8.000000000000000000
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Size.Width = 313.000000000000000000
+    Size.Height = 453.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    object Text1: TText
+      Position.X = 8.000000000000000000
+      Position.Y = 198.000000000000000000
+      Size.Width = 73.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Platform:'
+      TextSettings.HorzAlign = Leading
+    end
+    object Text2: TText
+      Position.X = 8.000000000000000000
+      Position.Y = 127.000000000000000000
+      Size.Width = 113.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Configuration:'
+      TextSettings.HorzAlign = Leading
+    end
+    object CheckBox1: TCheckBox
+      Position.X = 16.000000000000000000
+      Position.Y = 408.000000000000000000
+      Size.Width = 161.000000000000000000
+      Size.Height = 19.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Text = #20165#37096#32626#25991#20214#22841#20869#30340#25991#20214
+    end
+    object Deploy: TButton
+      Position.X = 200.000000000000000000
+      Position.Y = 408.000000000000000000
+      TabOrder = 2
+      Text = 'Deploy'
+      OnClick = DeployClick
+    end
+    object Release: TCheckBox
+      Position.X = 86.000000000000000000
+      Position.Y = 129.000000000000000000
+      TabOrder = 9
+      Text = 'Release'
+    end
+    object Debug: TCheckBox
+      Position.X = 182.000000000000000000
+      Position.Y = 129.000000000000000000
+      TabOrder = 8
+      Text = 'Debug'
+    end
+    object Android: TCheckBox
+      Position.X = 10.000000000000000000
+      Position.Y = 230.000000000000000000
+      TabOrder = 7
+      Text = 'Android'
+    end
+    object iOS32: TCheckBox
+      Position.X = 10.000000000000000000
+      Position.Y = 294.000000000000000000
+      TabOrder = 6
+      Text = 'iOS Device 32'
+    end
+    object iOS64: TCheckBox
+      Position.X = 10.000000000000000000
+      Position.Y = 322.000000000000000000
+      TabOrder = 5
+      Text = 'iOS Device 64'
+    end
+    object iOSSimulator: TCheckBox
+      Position.X = 10.000000000000000000
+      Position.Y = 350.000000000000000000
+      TabOrder = 4
+      Text = 'iOS Simulator'
+    end
+    object OSX: TCheckBox
+      Position.X = 10.000000000000000000
+      Position.Y = 262.000000000000000000
+      TabOrder = 3
+      Text = 'OSX'
+    end
+    object Text3: TText
+      Align = Top
+      Size.Width = 313.000000000000000000
+      Size.Height = 105.000000000000000000
+      Size.PlatformDefault = False
+      Text = 
+        #35828#26126':'#36873#25321#38656#35201#37096#32626#30340'Platform'#19982'Configuration,'#36873#25321#38656#35201#37096#32626#30340#25991#20214#36335#24452#65292#28857#20987'Deploy'#65292#29983#25104#37096#32626#30340#25991#26412#65292#22797#21046 +
+        #21040#23545#24212#30340'*.dproj'#20013'(Bug'#32852#31995':371889755@qq.com)'
+      TextSettings.HorzAlign = Leading
+    end
+    object ComboEdit1: TComboEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 13
+      ItemHeight = 19.000000000000000000
+      ItemIndex = -1
+      Position.X = 136.000000000000000000
+      Position.Y = 229.000000000000000000
+      Size.Width = 161.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object ComboEdit2: TComboEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 12
+      ItemHeight = 19.000000000000000000
+      ItemIndex = -1
+      Position.X = 136.000000000000000000
+      Position.Y = 259.000000000000000000
+      Size.Width = 161.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object ComboEdit3: TComboEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 11
+      ItemHeight = 19.000000000000000000
+      ItemIndex = -1
+      Position.X = 136.000000000000000000
+      Position.Y = 291.000000000000000000
+      Size.Width = 161.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object CheckBox2: TCheckBox
+      Position.X = 16.000000000000000000
+      Position.Y = 384.000000000000000000
+      Size.Width = 241.000000000000000000
+      Size.Height = 19.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 14
+      Text = #19981#20351#29992' Remote Path'#65288#30452#25509#37096#32626#25991#20214#22841#65289
+    end
+  end
+  object Layout2: TLayout
+    Align = Client
+    Margins.Left = 8.000000000000000000
+    Margins.Top = 8.000000000000000000
+    Margins.Right = 8.000000000000000000
+    Margins.Bottom = 8.000000000000000000
+    Size.Width = 401.000000000000000000
+    Size.Height = 445.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object Memo1: TMemo
+      Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+      DataDetectorTypes = []
+      Align = Client
+      Size.Width = 401.000000000000000000
+      Size.Height = 381.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 2
+      Viewport.Width = 397.000000000000000000
+      Viewport.Height = 377.000000000000000000
+    end
+    object layoutFolderPath: TLayout
+      Align = Top
+      Margins.Left = 8.000000000000000000
+      Margins.Top = 8.000000000000000000
+      Margins.Right = 8.000000000000000000
+      Position.X = 8.000000000000000000
+      Position.Y = 8.000000000000000000
+      Size.Width = 385.000000000000000000
+      Size.Height = 56.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 3
+      object layoutSDKTransPath2: TLayout
+        Align = Bottom
+        Margins.Bottom = 8.000000000000000000
+        Position.Y = 23.000000000000000000
+        Size.Width = 385.000000000000000000
+        Size.Height = 25.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+        object FolderPath: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Align = Client
+          TabOrder = 0
+          Margins.Right = 4.000000000000000000
+          Size.Width = 317.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+        end
+        object btnSDKTransPathRef: TButton
+          Align = Right
+          Position.X = 321.000000000000000000
+          Size.Width = 64.000000000000000000
+          Size.Height = 25.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 1
+          Text = '&Ref...'
+          OnClick = btnSDKTransPathRefClick
+        end
+      end
+      object Label1: TLabel
+        FocusControl = FolderPath
+        Position.Y = 4.000000000000000000
+        Size.Width = 137.000000000000000000
+        Size.Height = 17.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Folder Path:'
+      end
+    end
+  end
+  object Text4: TText
+    Position.X = 144.000000000000000000
+    Position.Y = 206.000000000000000000
+    Size.Width = 113.000000000000000000
+    Size.Height = 22.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Remote Path:'
+    TextSettings.HorzAlign = Leading
+  end
+end
