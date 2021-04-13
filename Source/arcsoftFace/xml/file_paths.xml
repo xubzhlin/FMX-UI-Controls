@@ -1,0 +1,3 @@
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+  <external-path name="Camera" path="DCIM/Camera"/>
+</paths>
